@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Gesture Audio Score - Build v6 (p5.sound only)</title>
+  <style>
+    body { margin: 0; overflow: hidden; background: black; font-family: sans-serif; }
+    #defaultCanvas0 { position: absolute; top: 0; left: 0; z-index: 1; }
+    #startButton {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 24px;
+      padding: 1em 2em;
+      background: #fff;
+      border: none;
+      cursor: pointer;
+      z-index: 2;
+    }
+    video { display: none; }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/addons/p5.sound.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+</head>
+<body>
+<button id="startButton">Start App</button>
+<video class="input_video" playsinline></video>
+<script>
+console.log("Build v6 loaded - using p5.sound only");
+
+let mic, fft, handX = 0.5, handY = 0.5;
+let hands, showScore = false;
+let started = false;
+
+document.getElementById('startButton').addEventListener('click', async () => {
+  document.getElementById('startButton').style.display = 'none';
+  userStartAudio().then(() => {
+    console.log("AudioContext started");
+    mic = new p5.AudioIn();
+    fft = new p5.FFT();
+    mic.start(() => {
+      fft.setInput(mic);
+      console.log("Mic started (p5.sound)");
+    });
+    setupApp();
+  });
+});
+
+function setupApp() {
+  createCanvas(windowWidth, windowHeight);
+  background(0);
+  textAlign(CENTER, CENTER);
+  textSize(24);
+  fill(255);
+
+  hands = new Hands({locateFile: file => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`});
+  hands.setOptions({
+    maxNumHands: 1,
+    modelComplexity: 1,
+    minDetectionConfidence: 0.7,
+    minTrackingConfidence: 0.7
+  });
+
+  hands.onResults(results => {
+    if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+      let indexTip = results.multiHandLandmarks[0][8];
+      handX = indexTip.x;
+      handY = indexTip.y;
+      showScore = true;
+    }
+  });
+
+  const videoElement = document.querySelector(".input_video");
+  const camera = new Camera(videoElement, {
+    onFrame: async () => {
+      try {
+        await hands.send({ image: videoElement });
+      } catch (e) {
+        console.error("Camera error:", e);
+      }
+    },
+    width: 640,
+    height: 480,
+  });
+  camera.start();
+
+  started = true;
+}
+
+function draw() {
+  if (!started) return;
+
+  background(0, 20);
+
+  if (!showScore || !mic || !fft) {
+    fill(255);
+    text("Waiting for mic and gesture input (v6)...", width / 2, height / 2);
+    return;
+  }
+
+  let spectrum = fft.analyze();
+  let energy = fft.getEnergy("mid");
+
+  const x = handX * width;
+  const y = handY * height;
+
+  noStroke();
+  fill(255, 150, random(200, 255), map(energy, 0, 255, 50, 200));
+  ellipse(x + random(-20, 20), y + random(-20, 20), map(energy, 0, 255, 20, 200));
+
+  if (frameCount % 45 === 0 && energy > 60) {
+    fill(255);
+    const type = floor(random(3));
+    switch (type) {
+      case 0: rect(x, y, 40, 4); break;
+      case 1: triangle(x, y, x - 10, y + 15, x + 10, y + 15); break;
+      case 2: line(x - 15, y, x + 15, y); break;
+    }
+  }
+}
+</script>
+</body>
+</html>
