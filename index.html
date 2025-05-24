@@ -1,118 +1,98 @@
+<!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Charcoal Sketch Paper</title>
-    <style>
-        body, html {
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
-            height: 100%;
-            width: 100%;
-            font-family: Arial, sans-serif;
-            background-color: #f8f5ee;
-        }
-        #canvas-container {
-            position: relative;
-            width: 100%;
-            height: 100%;
-        }
-        #drawing-canvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            background-color: #f8f5ee;
-            box-shadow: inset 0 0 50px rgba(0,0,0,0.03);
-        }
-        #paper-texture {
-            position: absolute;
-            top: 0;
-            left: 0;
-            opacity: 0.2;
-            pointer-events: none;
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            mix-blend-mode: multiply;
-        }
-        #ui-container {
-            position: absolute;
-            bottom: 20px;
-            right: 20px;
-            z-index: 10;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-        button {
-            padding: 10px 15px;
-            background-color: rgba(255, 255, 255, 0.7);
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-            transition: all 0.2s;
-        }
-        button:hover {
-            background-color: rgba(255, 255, 255, 0.9);
-        }
-        #status {
-            color: #666;
-            font-size: 12px;
-            margin-top: 5px;
-            text-align: center;
-        }
-        #cursor {
-            position: absolute;
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            border: 1px solid rgba(0, 0, 0, 0.3);
-            pointer-events: none;
-            transform: translate(-50%, -50%);
-            z-index: 5;
-            display: none;
-        }
-        #video {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            width: 160px;
-            height: 120px;
-            transform: scaleX(-1);
-            border-radius: 4px;
-            opacity: 0.7;
-            z-index: 5;
-            display: none;
-        }
-    </style>
+  <meta charset="utf-8" />
+  <title>Gesture Audio Score with Effects</title>
+  <style>
+    body { margin: 0; overflow: hidden; background: black; }
+    #defaultCanvas0 { position: absolute; top: 0; left: 0; z-index: 1; }
+    video { display: none; }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/addons/p5.sound.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.31/Tone.min.js"></script>
 </head>
 <body>
-    <div id="canvas-container">
-        <canvas id="drawing-canvas"></canvas>
-        <img id="paper-texture" src="paper_texture.png" alt="Paper texture">
-        <div id="cursor"></div>
-        <video id="video" playsinline autoplay></video>
-        
-        <div id="ui-container">
-            <button id="start-tracking">Start Tracking</button>
-            <button id="toggle-live-audio">Toggle Live Audio</button>
-            <button id="change-params">Change Drawing Style</button>
-            <button id="clear-canvas">Clear Canvas</button>
-            <button id="save-drawing">Save Drawing</button>
-            <div id="status">Click 'Start Tracking' to begin</div>
-        </div>
-    </div>
+<video class="input_video" playsinline></video>
+<script>
+let meter, mic, handX = 0.5, handY = 0.5;
+let hands, showScore = false;
 
-    <script type="importmap">
-        {
-            "imports": {
-                "@mediapipe/tasks-vision": "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/dist/tasks-vision.js",
-                "tone": "https://cdn.skypack.dev/tone"
-            }
-        }
-    </script>
-    <script src="app.js" type="module"></script>
+function setup() {
+  createCanvas(windowWidth, windowHeight);
+  background(0);
+
+  mic = new Tone.UserMedia();
+  meter = new Tone.Meter();
+  mic.open().then(() => {
+    mic.connect(meter);
+    mic.connect(new Tone.Gain(1).toDestination());
+  });
+
+  hands = new Hands({locateFile: file => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`});
+  hands.setOptions({
+    maxNumHands: 1,
+    modelComplexity: 1,
+    minDetectionConfidence: 0.7,
+    minTrackingConfidence: 0.7
+  });
+
+  hands.onResults(results => {
+    if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+      let indexTip = results.multiHandLandmarks[0][8];
+      handX = indexTip.x;
+      handY = indexTip.y;
+      showScore = true;
+    }
+  });
+
+  const videoElement = document.querySelector(".input_video");
+  const camera = new Camera(videoElement, {
+    onFrame: async () => {
+      try {
+        await hands.send({ image: videoElement });
+      } catch (e) {
+        console.error(e);
+      }
+    },
+    width: 640,
+    height: 480,
+  });
+  camera.start();
+}
+
+function draw() {
+  background(0, 20);
+  const audioLevel = Math.abs(meter.getValue() || 0);
+  const x = handX * width;
+  const y = handY * height;
+
+  if (!showScore) {
+    fill(255);
+    textSize(32);
+    textAlign(CENTER, CENTER);
+    text("Waiting for input...", width / 2, height / 2);
+    return;
+  }
+
+  // Abstract visuals
+  noStroke();
+  fill(255, 150, random(200, 255), map(audioLevel, 0, 0.5, 50, 200));
+  ellipse(x + random(-20, 20), y + random(-20, 20), map(audioLevel, 0, 0.5, 20, 200));
+
+  // Structured score symbols
+  if (frameCount % 45 === 0 && audioLevel > 0.05) {
+    fill(255);
+    const type = floor(random(3));
+    switch (type) {
+      case 0: rect(x, y, 40, 4); break;
+      case 1: triangle(x, y, x - 10, y + 15, x + 10, y + 15); break;
+      case 2: line(x - 15, y, x + 15, y); break;
+    }
+  }
+}
+</script>
 </body>
 </html>
