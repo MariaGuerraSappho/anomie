@@ -1,3 +1,4 @@
+console.log("app.js loaded");
 import { FaceLandmarker, HandLandmarker, FilesetResolver } from '@mediapipe/tasks-vision';
 import * as Tone from 'tone';
 
