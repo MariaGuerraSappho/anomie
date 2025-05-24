@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Gesture Audio Score - Fixed</title>
+  <title>Gesture Audio Score - Safe Load</title>
   <style>
     body { margin: 0; overflow: hidden; background: black; font-family: sans-serif; }
     #defaultCanvas0 { position: absolute; top: 0; left: 0; z-index: 1; }
@@ -34,14 +34,22 @@ let meter, mic, handX = 0.5, handY = 0.5;
 let hands, showScore = false;
 let started = false;
 
-document.getElementById('startButton').addEventListener('click', async () => {
-  await Tone.start();
-  console.log('Tone.js AudioContext started');
+window.onload = () => {
+  const startButton = document.getElementById('startButton');
+  startButton.addEventListener('click', async () => {
+    if (!window.Tone) {
+      alert("Tone.js not loaded yet. Try reloading the page.");
+      return;
+    }
 
-  document.getElementById('startButton').style.display = 'none';
-  started = true;
-  setupApp();
-});
+    await Tone.start();
+    console.log("Tone.js AudioContext started");
+
+    document.getElementById('startButton').style.display = 'none';
+    started = true;
+    setupApp();
+  });
+};
 
 function setupApp() {
   createCanvas(windowWidth, windowHeight);
@@ -107,12 +115,10 @@ function draw() {
   const x = handX * width;
   const y = handY * height;
 
-  // Abstract visuals
   noStroke();
   fill(255, 150, random(200, 255), map(audioLevel, 0, 0.5, 50, 200));
   ellipse(x + random(-20, 20), y + random(-20, 20), map(audioLevel, 0, 0.5, 20, 200));
 
-  // Structured score symbols
   if (frameCount % 45 === 0 && audioLevel > 0.05) {
     fill(255);
     const type = floor(random(3));
