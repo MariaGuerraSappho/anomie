@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Gesture Audio Score - Build v5 (Dynamic Tone Load)</title>
+  <title>Gesture Audio Score - Build v6 (p5.sound only)</title>
   <style>
     body { margin: 0; overflow: hidden; background: black; font-family: sans-serif; }
     #defaultCanvas0 { position: absolute; top: 0; left: 0; z-index: 1; }
@@ -29,40 +29,24 @@
 <button id="startButton">Start App</button>
 <video class="input_video" playsinline></video>
 <script>
-console.log("Build v5 loaded");
+console.log("Build v6 loaded - using p5.sound only");
 
-let handX = 0.5, handY = 0.5;
+let mic, fft, handX = 0.5, handY = 0.5;
 let hands, showScore = false;
 let started = false;
-let meter = null;
 
 document.getElementById('startButton').addEventListener('click', async () => {
   document.getElementById('startButton').style.display = 'none';
-  console.log("User gesture received. Loading Tone.js...");
-
-  const script = document.createElement('script');
-  script.src = "https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.31/Tone.min.js";
-  script.onload = async () => {
-    console.log("Tone.js loaded dynamically.");
-
-    await Tone.start();
-    console.log("Tone AudioContext started");
-
-    const mic = new Tone.UserMedia();
-    meter = new Tone.Meter();
-
-    mic.open().then(() => {
-      const gain = new Tone.Gain(1).toDestination();
-      mic.connect(meter);
-      mic.connect(gain);
-      console.log("Mic access granted and connected.");
-    }).catch(e => {
-      console.error("Mic error:", e);
+  userStartAudio().then(() => {
+    console.log("AudioContext started");
+    mic = new p5.AudioIn();
+    fft = new p5.FFT();
+    mic.start(() => {
+      fft.setInput(mic);
+      console.log("Mic started (p5.sound)");
     });
-
     setupApp();
-  };
-  document.body.appendChild(script);
+  });
 });
 
 function setupApp() {
@@ -111,21 +95,23 @@ function draw() {
 
   background(0, 20);
 
-  if (!showScore || !meter) {
+  if (!showScore || !mic || !fft) {
     fill(255);
-    text("Waiting for mic and gesture input (v5)...", width / 2, height / 2);
+    text("Waiting for mic and gesture input (v6)...", width / 2, height / 2);
     return;
   }
 
-  const audioLevel = Math.abs(meter.getValue() || 0);
+  let spectrum = fft.analyze();
+  let energy = fft.getEnergy("mid");
+
   const x = handX * width;
   const y = handY * height;
 
   noStroke();
-  fill(255, 150, random(200, 255), map(audioLevel, 0, 0.5, 50, 200));
-  ellipse(x + random(-20, 20), y + random(-20, 20), map(audioLevel, 0, 0.5, 20, 200));
+  fill(255, 150, random(200, 255), map(energy, 0, 255, 50, 200));
+  ellipse(x + random(-20, 20), y + random(-20, 20), map(energy, 0, 255, 20, 200));
 
-  if (frameCount % 45 === 0 && audioLevel > 0.05) {
+  if (frameCount % 45 === 0 && energy > 60) {
     fill(255);
     const type = floor(random(3));
     switch (type) {
