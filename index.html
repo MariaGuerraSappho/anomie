@@ -2,10 +2,22 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Gesture Audio Score with Effects</title>
+  <title>Gesture Audio Score - Fixed</title>
   <style>
-    body { margin: 0; overflow: hidden; background: black; }
+    body { margin: 0; overflow: hidden; background: black; font-family: sans-serif; }
     #defaultCanvas0 { position: absolute; top: 0; left: 0; z-index: 1; }
+    #startButton {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 24px;
+      padding: 1em 2em;
+      background: #fff;
+      border: none;
+      cursor: pointer;
+      z-index: 2;
+    }
     video { display: none; }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.min.js"></script>
@@ -15,20 +27,37 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.31/Tone.min.js"></script>
 </head>
 <body>
+<button id="startButton">Start App</button>
 <video class="input_video" playsinline></video>
 <script>
 let meter, mic, handX = 0.5, handY = 0.5;
 let hands, showScore = false;
+let started = false;
 
-function setup() {
+document.getElementById('startButton').addEventListener('click', async () => {
+  await Tone.start();
+  console.log('Tone.js AudioContext started');
+
+  document.getElementById('startButton').style.display = 'none';
+  started = true;
+  setupApp();
+});
+
+function setupApp() {
   createCanvas(windowWidth, windowHeight);
   background(0);
+  textAlign(CENTER, CENTER);
+  textSize(24);
+  fill(255);
 
   mic = new Tone.UserMedia();
   meter = new Tone.Meter();
   mic.open().then(() => {
     mic.connect(meter);
     mic.connect(new Tone.Gain(1).toDestination());
+    console.log('Mic access granted');
+  }).catch(e => {
+    console.error('Mic access error:', e);
   });
 
   hands = new Hands({locateFile: file => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`});
@@ -54,7 +83,7 @@ function setup() {
       try {
         await hands.send({ image: videoElement });
       } catch (e) {
-        console.error(e);
+        console.error('Camera frame error:', e);
       }
     },
     width: 640,
@@ -64,18 +93,19 @@ function setup() {
 }
 
 function draw() {
+  if (!started) return;
+
   background(0, 20);
+
+  if (!showScore || !meter) {
+    fill(255);
+    text("Waiting for mic and gesture input...", width / 2, height / 2);
+    return;
+  }
+
   const audioLevel = Math.abs(meter.getValue() || 0);
   const x = handX * width;
   const y = handY * height;
-
-  if (!showScore) {
-    fill(255);
-    textSize(32);
-    textAlign(CENTER, CENTER);
-    text("Waiting for input...", width / 2, height / 2);
-    return;
-  }
 
   // Abstract visuals
   noStroke();
