@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Gesture Audio Score - Deferred Tone</title>
+  <title>Gesture Audio Score - Build v4</title>
   <style>
     body { margin: 0; overflow: hidden; background: black; font-family: sans-serif; }
     #defaultCanvas0 { position: absolute; top: 0; left: 0; z-index: 1; }
@@ -30,6 +30,8 @@
 <button id="startButton">Start App</button>
 <video class="input_video" playsinline></video>
 <script>
+console.log("Build v4 loaded");
+
 let handX = 0.5, handY = 0.5;
 let hands, showScore = false;
 let started = false;
@@ -51,11 +53,12 @@ window.onload = () => {
     meter = new Tone.Meter();
 
     mic.open().then(() => {
+      const gain = new Tone.Gain(1).toDestination();
       mic.connect(meter);
-      mic.connect(new Tone.Gain(1).toDestination());
-      console.log('Mic access granted');
+      mic.connect(gain);
+      console.log("Mic opened and connected in Build v4.");
     }).catch(e => {
-      console.error('Mic access error:', e);
+      console.error("Mic access error:", e);
     });
 
     setupApp();
@@ -92,7 +95,7 @@ function setupApp() {
       try {
         await hands.send({ image: videoElement });
       } catch (e) {
-        console.error('Camera error:', e);
+        console.error("Camera error:", e);
       }
     },
     width: 640,
@@ -108,7 +111,7 @@ function draw() {
 
   if (!showScore || !meter) {
     fill(255);
-    text("Waiting for mic and gesture input...", width / 2, height / 2);
+    text("Waiting for mic and gesture input (v4)...", width / 2, height / 2);
     return;
   }
 
