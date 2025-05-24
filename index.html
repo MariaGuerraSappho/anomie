@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Gesture Audio Score - Build v4</title>
+  <title>Gesture Audio Score - Build v5 (Dynamic Tone Load)</title>
   <style>
     body { margin: 0; overflow: hidden; background: black; font-family: sans-serif; }
     #defaultCanvas0 { position: absolute; top: 0; left: 0; z-index: 1; }
@@ -24,30 +24,29 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/addons/p5.sound.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.31/Tone.min.js"></script>
 </head>
 <body>
 <button id="startButton">Start App</button>
 <video class="input_video" playsinline></video>
 <script>
-console.log("Build v4 loaded");
+console.log("Build v5 loaded");
 
 let handX = 0.5, handY = 0.5;
 let hands, showScore = false;
 let started = false;
-let meter;
+let meter = null;
 
-window.onload = () => {
-  document.getElementById('startButton').addEventListener('click', async () => {
-    if (!window.Tone) {
-      alert("Tone.js not loaded. Try reloading the page.");
-      return;
-    }
+document.getElementById('startButton').addEventListener('click', async () => {
+  document.getElementById('startButton').style.display = 'none';
+  console.log("User gesture received. Loading Tone.js...");
+
+  const script = document.createElement('script');
+  script.src = "https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.31/Tone.min.js";
+  script.onload = async () => {
+    console.log("Tone.js loaded dynamically.");
 
     await Tone.start();
-    console.log("Tone.js AudioContext started");
-    document.getElementById('startButton').style.display = 'none';
-    started = true;
+    console.log("Tone AudioContext started");
 
     const mic = new Tone.UserMedia();
     meter = new Tone.Meter();
@@ -56,14 +55,15 @@ window.onload = () => {
       const gain = new Tone.Gain(1).toDestination();
       mic.connect(meter);
       mic.connect(gain);
-      console.log("Mic opened and connected in Build v4.");
+      console.log("Mic access granted and connected.");
     }).catch(e => {
-      console.error("Mic access error:", e);
+      console.error("Mic error:", e);
     });
 
     setupApp();
-  });
-};
+  };
+  document.body.appendChild(script);
+});
 
 function setupApp() {
   createCanvas(windowWidth, windowHeight);
@@ -102,6 +102,8 @@ function setupApp() {
     height: 480,
   });
   camera.start();
+
+  started = true;
 }
 
 function draw() {
@@ -111,7 +113,7 @@ function draw() {
 
   if (!showScore || !meter) {
     fill(255);
-    text("Waiting for mic and gesture input (v4)...", width / 2, height / 2);
+    text("Waiting for mic and gesture input (v5)...", width / 2, height / 2);
     return;
   }
 
