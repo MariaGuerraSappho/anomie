@@ -1,0 +1,118 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Charcoal Sketch Paper</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            height: 100%;
+            width: 100%;
+            font-family: Arial, sans-serif;
+            background-color: #f8f5ee;
+        }
+        #canvas-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+        #drawing-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            background-color: #f8f5ee;
+            box-shadow: inset 0 0 50px rgba(0,0,0,0.03);
+        }
+        #paper-texture {
+            position: absolute;
+            top: 0;
+            left: 0;
+            opacity: 0.2;
+            pointer-events: none;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            mix-blend-mode: multiply;
+        }
+        #ui-container {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: rgba(255, 255, 255, 0.7);
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        button:hover {
+            background-color: rgba(255, 255, 255, 0.9);
+        }
+        #status {
+            color: #666;
+            font-size: 12px;
+            margin-top: 5px;
+            text-align: center;
+        }
+        #cursor {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            border: 1px solid rgba(0, 0, 0, 0.3);
+            pointer-events: none;
+            transform: translate(-50%, -50%);
+            z-index: 5;
+            display: none;
+        }
+        #video {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            width: 160px;
+            height: 120px;
+            transform: scaleX(-1);
+            border-radius: 4px;
+            opacity: 0.7;
+            z-index: 5;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="canvas-container">
+        <canvas id="drawing-canvas"></canvas>
+        <img id="paper-texture" src="paper_texture.png" alt="Paper texture">
+        <div id="cursor"></div>
+        <video id="video" playsinline autoplay></video>
+        
+        <div id="ui-container">
+            <button id="start-tracking">Start Tracking</button>
+            <button id="toggle-live-audio">Toggle Live Audio</button>
+            <button id="change-params">Change Drawing Style</button>
+            <button id="clear-canvas">Clear Canvas</button>
+            <button id="save-drawing">Save Drawing</button>
+            <div id="status">Click 'Start Tracking' to begin</div>
+        </div>
+    </div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "@mediapipe/tasks-vision": "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/dist/tasks-vision.js",
+                "tone": "https://cdn.skypack.dev/tone"
+            }
+        }
+    </script>
+    <script src="app.js" type="module"></script>
+</body>
+</html>
